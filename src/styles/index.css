@@ -1,0 +1,18 @@
+    @tailwind base;
+    @tailwind components;
+    @tailwind utilities;
+
+    /* Smooth scroll behavior across the site */
+html {
+    scroll-behavior: smooth;
+  }
+  
+  /* Hide scrollbars on scroll sections (optional) */
+  .scroll-hidden::-webkit-scrollbar {
+    display: none;
+  }
+  .scroll-hidden {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  

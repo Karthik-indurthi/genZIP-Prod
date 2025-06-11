@@ -1,0 +1,52 @@
+{
+  "name": "interview-platform-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@react-navigation/native": "^7.1.9",
+    "@react-navigation/native-stack": "^7.3.13",
+    "@stripe/react-stripe-js": "^3.6.0",
+    "@stripe/stripe-js": "^7.2.0",
+    "@supabase/supabase-js": "^2.49.8",
+    "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
+    "emailjs-com": "^3.2.0",
+    "expo": "^53.0.9",
+    "expo-camera": "~16.1.6",
+    "expo-image-picker": "~16.1.4",
+    "framer-motion": "^12.7.4",
+    "lottie-react": "^2.4.1",
+    "lucide-react": "^0.493.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-icons": "^4.12.0",
+    "react-native-get-random-values": "^1.11.0",
+    "react-native-modal": "^14.0.0-rc.1",
+    "react-native-safe-area-context": "5.4.0",
+    "react-native-screens": "~4.10.0",
+    "react-native-url-polyfill": "^2.0.0",
+    "react-router-dom": "^7.5.1",
+    "recharts": "^2.15.3"
+  },
+  "devDependencies": {
+    "@types/expo": "^32.0.13",
+    "@types/react": "^18.0.37",
+    "@types/react-dom": "^18.0.11",
+    "@types/react-native": "^0.72.8",
+    "@types/stripe": "^8.0.416",
+    "@types/uuid": "^10.0.0",
+    "@vitejs/plugin-react": "^4.4.1",
+    "autoprefixer": "^10.4.21",
+    "expo-location": "^18.1.5",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.7.2",
+    "vite": "^6.3.1"
+  }
+}
