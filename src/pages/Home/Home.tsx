@@ -9,6 +9,7 @@ import GenZIPExplainer  from '../../assets/GenZIPExplainer.mp4';
 import '../../styles/index.css';
 import Stars from '../../components/Animations/Stars.js';
 import GenHubVideo from '../../assets/GenHub-idea.mp4';
+// Force redeploy for favicon update
 
 
 const Home = () => {
