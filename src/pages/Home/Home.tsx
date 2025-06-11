@@ -8,6 +8,8 @@ import '../../styles/stars.css';
 import GenZIPExplainer  from '../../assets/GenZIPExplainer.mp4';
 import '../../styles/index.css';
 import Stars from '../../components/Animations/Stars.js';
+import GenHubVideo from '../../assets/GenHub-idea.mp4';
+
 
 const Home = () => {
   const navigate = useNavigate();
@@ -23,38 +25,91 @@ const Home = () => {
 
   return (
     <div className="pt-16 bg-gradient-to-br from-white via-blue-50 to-indigo-100 min-h-screen text-gray-800">
-      {/* Hero Section */}
-      <section className="relative h-[calc(100vh-80px)] flex flex-col justify-center items-center text-center px-6 overflow-hidden">
-        <Stars />
-        <div className="relative z-10">
-          <motion.h1 
-            className="text-4xl md:text-6xl font-bold mb-6 text-indigo-900"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            Trusted Interview Verification
-          </motion.h1>
-          <motion.p 
-            className="text-lg md:text-xl mb-8 max-w-2xl text-gray-700"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-          >
-            Gen-ZIP ensures authentic candidate assessments by sending our professionals to conduct and record interviews at the candidate's location.
-          </motion.p>
-          <motion.button 
-            className="relative bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-8 py-3 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl group"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1.2 }}
-            onClick={() => setShowAuthOptions(true)}
-          >
-            <span className="relative z-10">Schedule Interview Now</span>
-            <span className="absolute inset-0 bg-indigo-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-          </motion.button>
+      {/* Logo Marquee */}
+      <div className="py-8 bg-white">
+        {/* Explainer Video Section */}
+        {/* What is Gen-ZIP? Section - Side by Side */}
+          <section className="py-16 bg-white px-6">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-10">
+             {/* Left Text */}
+           <div className="md:w-1/2 text-center md:text-left">
+      <h2 className="text-3xl font-bold text-indigo-900 mb-4">What is Gen-ZIP?</h2>
+      <p className="text-gray-700 text-lg leading-relaxed">
+        Gen-ZIP is a trusted interview verification service. We send trained professionals to the candidate’s location to verify their identity and record the entire interview. The video is securely uploaded for HR and interviewers to review, ensuring every interview is real and fraud-free.
+      </p>
         </div>
-      </section>
+
+    {/* Right Video */}
+    <div className="md:w-1/2 w-full rounded-2xl shadow-lg overflow-hidden border border-indigo-100">
+      <video
+        controls
+        autoPlay
+        muted
+        loop
+        className="w-full h-auto"
+      >
+        <source src={GenZIPExplainer} type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
+    </div>
+  </div>
+</section>
+
+
+        {/* <LogoScroller /> */}
+      </div>
+      {/* Hero Section */}
+      <section className="py-20 px-6 bg-gradient-to-b from-blue-50 to-indigo-100">
+  <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12">
+    
+    {/* Left: Heading & CTA */}
+    <div className="md:w-1/2 text-center md:text-left">
+      <motion.h1 
+        className="text-4xl md:text-5xl font-bold mb-6 text-indigo-900"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+      >
+        Trusted Interview Verification
+      </motion.h1>
+      <motion.p 
+        className="text-lg md:text-xl mb-6 text-gray-700"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 1 }}
+      >
+        Gen-ZIP ensures authentic candidate assessments by sending our professionals to conduct and record interviews at the candidate's location.
+      </motion.p>
+      <motion.button 
+        className="relative bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-8 py-3 rounded-lg shadow-lg transition-all duration-300 hover:shadow-xl group"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 1.2 }}
+        onClick={() => setShowAuthOptions(true)}
+      >
+        <span className="relative z-10">Schedule Interview Now</span>
+        <span className="absolute inset-0 bg-indigo-700 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
+      </motion.button>
+    </div>
+
+    {/* Right: GenZIP Hub Video */}
+    <div className="md:w-1/2 w-full rounded-2xl shadow-lg overflow-hidden border border-indigo-100">
+  <video
+    controls
+    autoPlay
+    muted
+    loop
+    className="w-full h-auto"
+  >
+    <source src={GenHubVideo} type="video/mp4" />
+    Your browser does not support the video tag.
+  </video>
+</div>
+
+
+  </div>
+</section>
+
 
       {/* Auth Modal */}
       {showAuthOptions && (
@@ -99,39 +154,7 @@ const Home = () => {
         </motion.div>
       )}
 
-      {/* Logo Marquee */}
-      <div className="py-8 bg-white">
-        {/* Explainer Video Section */}
-{/* What is Gen-ZIP? Section - Side by Side */}
-<section className="py-16 bg-white px-6">
-  <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-10">
-    {/* Left Text */}
-    <div className="md:w-1/2 text-center md:text-left">
-      <h2 className="text-3xl font-bold text-indigo-900 mb-4">What is Gen-ZIP?</h2>
-      <p className="text-gray-700 text-lg leading-relaxed">
-        Gen-ZIP is a trusted interview verification service. We send trained professionals to the candidate’s location to verify their identity and record the entire interview. The video is securely uploaded for HR and interviewers to review, ensuring every interview is real and fraud-free.
-      </p>
-    </div>
-
-    {/* Right Video */}
-    <div className="md:w-1/2 w-full rounded-2xl shadow-lg overflow-hidden border border-indigo-100">
-      <video
-        controls
-        autoPlay
-        muted
-        loop
-        className="w-full h-auto"
-      >
-        <source src={GenZIPExplainer} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
-    </div>
-  </div>
-</section>
-
-
-        {/* <LogoScroller /> */}
-      </div>
+      
 
       {/* How It Works Section */}
       <section className="py-20 px-6 bg-gradient-to-b from-blue-50 to-white">
