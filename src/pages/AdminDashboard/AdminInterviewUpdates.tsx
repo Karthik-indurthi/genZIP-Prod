@@ -11,7 +11,6 @@ const AdminInterviewUpdates: React.FC = () => {
   const [search, setSearch] = useState('');
   const [availableCredits, setAvailableCredits] = useState(0);
 const [companyId, setCompanyId] = useState<string | null>(null);
-const [showPaymentModal, setShowPaymentModal] = useState<string | null>(null);
 
 
 
