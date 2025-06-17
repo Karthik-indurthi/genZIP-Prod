@@ -154,6 +154,7 @@ const AdminDashboard = () => {
       const used = creditTransactions?.reduce((sum, row) => sum + row.credits_used, 0) || 0;
     
       setCreditInfo({ added, used });
+      
     };
     
     loadAdminCredits();

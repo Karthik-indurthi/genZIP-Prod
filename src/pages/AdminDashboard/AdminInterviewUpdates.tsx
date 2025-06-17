@@ -16,6 +16,10 @@ const [showPaymentModal, setShowPaymentModal] = useState<string | null>(null);
 
 
   const fetchInterviews = async () => {
+    if (!companyId) {
+      console.warn("No companyId yet, skipping fetchInterviews.");
+      return;
+    }
     const { data: userData } = await supabase.auth.getUser();
     const email = userData?.user?.email;
     if (!email) return;
@@ -129,11 +133,13 @@ const [showPaymentModal, setShowPaymentModal] = useState<string | null>(null);
     // 6. Map and enrich interview data
     const interviewIds = interviewsData.map((i: any) => i.Id);
 
-const { data: usedCredits } = await supabase
-  .from('credittransactions')
-  .select('reference_id')
-  .eq('credits_used', 1)
-  .in('reference_id', interviewIds);
+    const { data: usedCredits } = await supabase
+    .from('credittransactions')
+    .select('reference_id')
+    .eq('credits_used', 1)
+    .eq('company_id', companyId) // <-- ensure it’s this admin's company only
+    .in('reference_id', interviewIds);
+  
 
 const creditUsedSet = new Set((usedCredits || []).map(c => c.reference_id));
 
@@ -161,7 +167,10 @@ return {
   jobTitle: i.JobTable?.title || 'Unknown',
   jobCode: i.JobTable?.JobID || i.job_id,
   hrName: hrMap.get(i.createdby_email) || i.createdby_email,
-  isPaid: i.payment_status === 'completed' || creditUsedSet.has(i.Id)
+  isPaid: i.payment_status === 'completed' 
+  ? true 
+  : creditUsedSet.has(i.Id)
+
 };
 
     });
@@ -172,37 +181,41 @@ return {
   
 
   useEffect(() => {
-    const loadCredits = async () => {
+    const load = async () => {
       const { data: userData } = await supabase.auth.getUser();
       const email = userData?.user?.email;
       if (!email) return;
-    
+  
       const { data: adminRecord } = await supabase
         .from('AdminTable')
         .select('company_id')
         .eq('EmailId', email)
         .single();
-    
-      const company_id = adminRecord?.company_id;
-      if (!company_id) return;
-    
-      setCompanyId(company_id);
-    
+  
+      const fetchedCompanyId = adminRecord?.company_id;
+      if (!fetchedCompanyId) return;
+  
+      setCompanyId(fetchedCompanyId);
+  
       const { data: creditsData } = await supabase
         .from('credittransactions')
         .select('credits_added, credits_used')
-        .eq('company_id', company_id);
-    
+        .eq('company_id', fetchedCompanyId);
+  
       const totalAdded = creditsData?.reduce((sum, row) => sum + row.credits_added, 0) || 0;
       const totalUsed = creditsData?.reduce((sum, row) => sum + row.credits_used, 0) || 0;
-    
+  
       setAvailableCredits(totalAdded - totalUsed);
     };
+  
+    load();
+  }, []);
+  useEffect(() => {
+    if (companyId) {
+      fetchInterviews();
+    } 
+  }, [companyId]);
     
-    loadCredits();
-    
-    fetchInterviews();
-    }, []);
 
   const filtered = interviews.filter(interview =>
     interview.candidateName?.toLowerCase().includes(search.toLowerCase())
@@ -274,26 +287,24 @@ return {
           </span>
         </td>
         <td className="px-4 py-2 text-center">
-          <span className={`inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium ${
-            interview.payment_status === 'completed' ? 'bg-green-100 text-green-700' :
-            'bg-yellow-100 text-yellow-700'
-          }`}>
-            {interview.isPaid ? (
-  <span className="text-green-600 font-semibold">Completed</span>
-) : availableCredits > 0 ? (
-  <span className="text-green-500 font-medium">Completed (via Credits)</span>
-) : (
-  <button
-    onClick={() => setShowPaymentModal(interview.Id)}
-    className="text-red-600 hover:text-red-800"
-  >
-    Pending – Pay Now
-  </button>
-)}
+  {interview.isPaid ? (
+    <span className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+      Completed
+    </span>
+  ) : availableCredits > 0 ? (
+    <span className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+      Completed (via Credits)
+    </span>
+  ) : (
+    <button
+      onClick={() => setShowPaymentModal(interview.Id)}
+      className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 hover:text-yellow-800"
+    >
+      Pending – Pay Now
+    </button>
+  )}
+</td>
 
-
-          </span>
-        </td>
         <td className="px-4 py-2">{interview.hrName}</td>
 
       </tr>

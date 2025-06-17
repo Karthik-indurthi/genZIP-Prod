@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route,useLocation  } from 'react-router-dom';
 import { useParams } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext.js';
 import ProtectedRoute from './components/ProtectedRoute.js';
@@ -61,16 +61,7 @@ import EmployeeTransferred from './pages/Employee/EmployeeTransferred.js';
 import EmployeeProfile from './pages/Employee/EmployeeProfile.js';
 import PrivacyPolicyModal from './pages/Home/PrivacyPolicyModal.js';
 
-const PayPerInterviewWrapper = () => {
-  const { interviewId } = useParams<{ interviewId: string }>();
 
-  return (
-    <PayPerInterview
-      interviewId={interviewId || ''}
-      onSuccess={() => window.location.href = '/hr/schedule'}
-    />
-  );
-};
 
 
 const App = () => (
@@ -123,7 +114,9 @@ const App = () => (
               <Route path="/payment" element={<Payment />} />
               <Route path="/payment-success" element={<PaymentSuccess />} />
               <Route path="/subscription" element={<SubscriptionPage />} />
-              <Route path="/pay-interview/:interviewId" element={<PayPerInterviewWrapper />} />
+              <Route path="/payperinterview" element={<PayPerInterview />} />
+
+              
 
 
               {/* Employee Routes */}

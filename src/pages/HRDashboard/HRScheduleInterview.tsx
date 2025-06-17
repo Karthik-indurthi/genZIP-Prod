@@ -23,7 +23,9 @@ const HRScheduleInterview = () => {
   const navigate = useNavigate();
   const [formError, setFormError] = useState('');
   const [availableCredits, setAvailableCredits] = useState(0);
-  const [showPaymentModal, setShowPaymentModal] = useState<string | null>(null);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState(false);
+
   
 
 
@@ -64,11 +66,26 @@ const HRScheduleInterview = () => {
   .eq('id', hrRecord.createdByAdminId)
   .single();
 
-const companyId = adminRecord?.company_id;
+  const fetchedCompanyId = adminRecord?.company_id;
+  if (!fetchedCompanyId) {
+    console.error("❌ Admin does not have a company_id");
+    return;
+  }
+  setCompanyId(fetchedCompanyId);
+  // ✅  Check if subscribed
+const { data: subscriptionData, error: subError } = await supabase
+.from('companysubscription')
+.select('*')
+.eq('company_id', fetchedCompanyId)
+.eq('status', 'active')
+.single();
 
-if (!companyId) {
-  console.error("❌ Admin does not have a company_id");
-  return;
+if (subscriptionData) {
+console.log('Company is subscribed ✅');
+setIsSubscribed(true);
+} else {
+console.log('Company is not subscribed');
+setIsSubscribed(false);
 }
 
   
@@ -76,7 +93,7 @@ if (!companyId) {
 const { data: creditRecords, error: creditError } = await supabase
   .from('credittransactions')
   .select('credits_added, credits_used')
-  .eq('company_id', companyId);
+  .eq('company_id', fetchedCompanyId);
 
 
 
@@ -99,18 +116,17 @@ console.log("Available credits for company:", availableCredits);
 
 // ⏩ Save it to state so we can use it later in the UI
 setAvailableCredits(availableCredits);
-
-      if (!companyId) {
-        console.error("HR has no associated company_id");
-        return;
-      }
   
       // 🔽 At this point, you now have `companyId` available for later use
   
       await fetchJobs();
-      await fetchCandidates();
-      await fetchInterviewers();
-      await fetchInterviews();
+await fetchCandidates();
+await fetchInterviewers();
+// ✅ Only call fetchInterviews if companyId is set
+if (fetchedCompanyId) {
+  await fetchInterviews(fetchedCompanyId);
+}
+
   
       const { data: interviewersData } = await supabase
         .from('InterviewerTable')
@@ -151,80 +167,156 @@ setAvailableCredits(availableCredits);
     if (data) setInterviewers(data);
   };
 
-  const fetchInterviews = async (ensureInterviewers = false) => {
+  const fetchCompanyId = async () => {
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData?.user?.id) return;
-    if (ensureInterviewers && interviewers.length === 0) {
-      await fetchInterviewers();
-    }
-    setFormError('');
-
-    const { data, error } = await supabase
-  .from('InterviewsTable')
-  .select(`
-    *,
-    JobTable (title, description),
-    CandidateTable (FirstName, LastName, EmailId),
-    InterviewerTable (FirstName, LastName, EmailId)
-  `)
-  .eq('created_by', userData.user.id);
-
-if (error) {
-  console.error("Supabase join query error:", error.message);
-} else {
-  console.log("Raw interview data:", data);
-}
-
-    if (data) {
-      const processedData = data.map(interview => ({
-        id: interview.id,
-        ...interview,
-        jobTitle: interview.JobTable?.title,
-        jobDescription: interview.JobTable?.description,
-        candidateName: `${interview.CandidateTable?.FirstName} ${interview.CandidateTable?.LastName}`,
-        candidateEmail: interview.CandidateTable?.EmailId,
-        location_uploaded: interview.location_uploaded,
-        interviewerNames: (() => {
-          let ids = [];
-          try {
-            ids = typeof interview.interviewer_ids === 'string'
-              ? JSON.parse(interview.interviewer_ids)
-              : interview.interviewer_ids;
-          } catch (err) {
-            console.error("Failed to parse interviewer_ids", err);
-          }
-        
-          return Array.isArray(ids)
-            ? ids.map((id: string) => {
-              const interviewerMap = new Map(
-                interviewers.map(i => [String(i.Id), i])
-              );
-              const match = interviewerMap.get(String(id));
-                return match ? `${match.FirstName} ${match.LastName}` : 'Unknown';
-              })
-            : [];
-        })(),
-        interviewerEmails: (() => {
-          let ids = [];
-          try {
-            ids = typeof interview.interviewer_ids === 'string'
-              ? JSON.parse(interview.interviewer_ids)
-              : interview.interviewer_ids;
-          } catch (err) {
-            console.error("Failed to parse interviewer_ids", err);
-          }
-        
-          return Array.isArray(ids)
-            ? ids.map((id: string) => {
-                const match = interviewers.find(i => String(i.Id) === String(id));
-                return match?.EmailId || 'Unknown';
-              })
-            : [];
-        })(),
-      }));
-      setInterviews(processedData);
-    }
+    if (!userData?.user?.email) return null;
+  
+    const { data: hrRecord } = await supabase
+      .from('HRTable')
+      .select('*')
+      .eq('EmailId', userData.user.email)
+      .single();
+  
+    if (!hrRecord) return null;
+  
+    const { data: adminRecord } = await supabase
+      .from('AdminTable')
+      .select('company_id')
+      .eq('id', hrRecord.createdByAdminId)
+      .single();
+  
+    return adminRecord?.company_id || null;
   };
+  // After fetchCompanyId
+const fetchAvailableCredits = async (company: string) => {
+  const { data: creditRecords, error: creditError } = await supabase
+    .from('credittransactions')
+    .select('credits_added, credits_used')
+    .eq('company_id', company);
+
+  let totalAdded = 0;
+  let totalUsed = 0;
+  if (creditRecords) {
+    creditRecords.forEach(rec => {
+      totalAdded += rec.credits_added || 0;
+      totalUsed += rec.credits_used || 0;
+    });
+  }
+  const available = totalAdded - totalUsed;
+  console.log("✅ Re-fetched available credits:", available);
+  setAvailableCredits(available);
+  return available;
+};
+
+
+  const fetchInterviews = async (id?: string | null) => {
+    const company = id ?? companyId;
+    if (!id) {
+      console.warn("⚠️ fetchInterviews: no companyId");
+      return;
+    }
+  
+    const { data: usedCredits } = await supabase
+      .from('credittransactions')
+      .select('reference_id')
+      .eq('company_id', id)
+      .eq('credits_used', 1);
+  
+    const creditUsedSet = new Set((usedCredits || []).map(c => c.reference_id));
+  
+    const { data, error } = await supabase
+      .from('InterviewsTable')
+      .select(`
+        *,
+        JobTable (title, description),
+        CandidateTable (FirstName, LastName, EmailId)
+      `)
+      .eq('company_id', id);
+  
+    if (error) {
+      console.error("Supabase join query error:", error.message);
+      return;
+    }
+  
+    const processedData = data.map(interview => ({
+      id: interview.id,
+      ...interview,
+      jobTitle: interview.JobTable?.title,
+      jobDescription: interview.JobTable?.description,
+      candidateName: `${interview.CandidateTable?.FirstName} ${interview.CandidateTable?.LastName}`,
+      candidateEmail: interview.CandidateTable?.EmailId,
+      location_uploaded: interview.location_uploaded,
+      isPaid: interview.payment_status === 'completed' || creditUsedSet.has(interview.Id),
+      interviewerNames: (() => {
+        let ids = [];
+        try {
+          ids = typeof interview.interviewer_ids === 'string'
+            ? JSON.parse(interview.interviewer_ids)
+            : interview.interviewer_ids;
+        } catch (err) {
+          console.error("Failed to parse interviewer_ids", err);
+        }
+        return Array.isArray(ids)
+          ? ids.map((id: string) => {
+              const interviewerMap = new Map(interviewers.map(i => [String(i.Id), i]));
+              const match = interviewerMap.get(String(id));
+              return match ? `${match.FirstName} ${match.LastName}` : 'Unknown';
+            })
+          : [];
+      })(),
+      interviewerEmails: (() => {
+        let ids = [];
+        try {
+          ids = typeof interview.interviewer_ids === 'string'
+            ? JSON.parse(interview.interviewer_ids)
+            : interview.interviewer_ids;
+        } catch (err) {
+          console.error("Failed to parse interviewer_ids", err);
+        }
+        return Array.isArray(ids)
+          ? ids.map((id: string) => {
+              const match = interviewers.find(i => String(i.Id) === String(id));
+              return match?.EmailId || 'Unknown';
+            })
+          : [];
+      })(),
+    }));
+  
+    setInterviews(processedData);
+  };
+
+  useEffect(() => {
+    const loadInitialData = async () => {
+      const id = await fetchCompanyId();
+      if (!id) return;
+  
+      setCompanyId(id);
+  
+      const { data: creditRecords, error: creditError } = await supabase
+        .from('credittransactions')
+        .select('credits_added, credits_used')
+        .eq('company_id', id);
+  
+      let totalAdded = 0;
+      let totalUsed = 0;
+      if (creditRecords) {
+        creditRecords.forEach(rec => {
+          totalAdded += rec.credits_added || 0;
+          totalUsed += rec.credits_used || 0;
+        });
+      }
+      setAvailableCredits(totalAdded - totalUsed);
+  
+      await fetchJobs();
+      await fetchCandidates();
+      await fetchInterviewers();
+      await fetchInterviews(id);
+    };
+  
+    loadInitialData();
+  }, []);
+  
+  
 
   const resetForm = () => {
     setSelectedJob('');
@@ -234,7 +326,7 @@ if (error) {
     setFromTime('');
     setToTime('');
     setDuration(null);
-    setEditingInterviewId(null);
+    setEditingInterviewId(null);  
   };
   const formatTime = (time: string) => {
     if (!time) return '';
@@ -254,11 +346,66 @@ if (error) {
     console.log("selectedJob:", selectedJob);
 console.log("selectedCandidate:", selectedCandidate);
     
-    if (!selectedJob || !selectedCandidate || selectedInterviewers.length === 0 || !interviewDate || !fromTime || !toTime) {
-      alert('Please fill all required fields');
-      setIsScheduling(false);
-      return;
-    }
+if (
+  !selectedJob ||
+  !selectedCandidate ||
+  selectedInterviewers.length === 0 ||
+  selectedInterviewers.some(id => id === '') ||  // ✅ NEW: check for blanks
+  !interviewDate ||
+  !fromTime ||
+  !toTime
+) {
+  alert('Please fill all required fields');
+  setIsScheduling(false);
+  return;
+}
+
+// ✅ NEW: check with 'used' flag properly
+console.log('🔑 Checking unused credits and subscription...');
+
+let hasUnusedCredit = false;
+
+if (companyId) {
+  const { data: unusedCredits, error: unusedError } = await supabase
+    .from('credittransactions')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('used', false)
+    .limit(1);
+
+  if (unusedError) {
+    console.error("❌ Error checking unused credits:", unusedError.message);
+    setIsScheduling(false);
+    return;
+  }
+
+  hasUnusedCredit = unusedCredits && unusedCredits.length > 0;
+}
+
+console.log('🔑 Is subscribed:', isSubscribed);
+console.log('🔑 Has unused credit:', hasUnusedCredit);
+
+if (!isSubscribed && !hasUnusedCredit) {
+  console.log('No unused credits — redirecting to Pay Per Interview');
+  navigate('/payperinterview', {
+    state: {
+      selectedJob,
+      selectedCandidate,
+      selectedInterviewers,
+      interviewDate,
+      fromTime,
+      toTime,
+      duration,
+      companyId,
+    },
+  });
+  setIsScheduling(false);
+  return;
+}
+
+// ✅ Otherwise: not subscribed but has credits → proceed
+
+
     const { data: existing, error: checkError } = await supabase
   .from('InterviewsTable')
   .select('*')
@@ -288,7 +435,8 @@ if (existing && existing.length > 0 && (!editingInterviewId || String(existing[0
       createdby_email: userData.user.email,
       created_at: new Date().toISOString(),
       JobDescription: job?.description || '', 
-      city: candidate?.city || ''
+      city: candidate?.city || '',
+      company_id: companyId 
     };
     
     let data = null;
@@ -320,6 +468,58 @@ if (editingInterviewId) {
       console.error("Insert error:", error);
     } else {
       console.log("Inserted interview:", data[0]);
+      // ✅ 1️⃣ Immediately deduct one credit for this interview
+      
+      if (!companyId) {
+  console.error("❌ Cannot schedule: no companyId");
+  setIsScheduling(false);
+  return;
+}
+
+if (isSubscribed) {
+  // ✅ If subscribed, log usage for tracking (optional)
+  await supabase.from('credittransactions').insert({
+    company_id: companyId,
+    credits_added: 0,
+    used: true,
+    reference_id: data[0].Id,
+    reason: 'Subscription',
+    amount_paid: 0,
+    payment_mode: 'Subscription'
+  });
+  console.log("✅ Marked subscription usage for interview:", data[0].Id);
+} else {
+  // ✅ Not subscribed → find 1 unused credit and mark it used
+  const { data: freeCredit, error: freeError } = await supabase
+    .from('credittransactions')
+    .select('*')
+    .eq('company_id', companyId)
+    .eq('used', false)
+    .limit(1)
+    .single();
+
+  if (freeError || !freeCredit) {
+    console.error("❌ No free credit found to mark used:", freeError?.message);
+    setIsScheduling(false);
+    return;
+  }
+
+  const { error: markError } = await supabase
+    .from('credittransactions')
+    .update({
+      used: true,
+      reference_id: data[0].Id
+    })
+    .eq('id', freeCredit.id);
+
+  if (markError) {
+    console.error("❌ Failed to mark credit as used:", markError.message);
+  } else {
+    console.log(`✅ Marked credit ${freeCredit.id} as used for interview ${data[0].Id}`);
+  }
+} 
+
+
     }
     console.log("Resolved candidate:", candidate);
     console.log("Candidate email:", candidate?.EmailId);
@@ -360,7 +560,7 @@ if (candidatePhone) {
     console.log("editingInterviewId at render", editingInterviewId);
     resetForm();
     setIsScheduling(false);
-    fetchInterviews(true);
+    fetchInterviews(companyId);
   };
 
   const editInterview = (interview: any) => {
@@ -424,7 +624,43 @@ if (candidatePhone) {
         alert('Delete failed: ' + error.message);
       } else {
         console.log('✅ Interview deleted');
-        fetchInterviews(true);
+        // ✅ Rollback the reserved credit usage
+        setInterviews(prev => prev.filter(i => String(i.Id) !== String(id)));
+        // ✅ Correct rollback: find the exact row FIRST then update it.
+const { data: creditsToRollback, error: fetchRollbackError } = await supabase
+.from('credittransactions')
+.select('id')
+.eq('reference_id', id)
+.eq('used', true)
+.limit(1);
+
+if (fetchRollbackError) {
+console.error("❌ Failed to find credit for rollback:", fetchRollbackError.message);
+} else if (creditsToRollback && creditsToRollback.length > 0) {
+const creditId = creditsToRollback[0].id;
+const { error: updateError } = await supabase
+  .from('credittransactions')
+  .update({
+    used: false,
+    reference_id: ''
+  })
+  .eq('id', creditId);
+
+if (updateError) {
+  console.error("❌ Failed to rollback credit:", updateError.message);
+} else {
+  console.log(`✅ Credit ${creditId} rolled back for deleted interview: ${id}`);
+}
+} else {
+console.warn("⚠️ No used credit found to rollback for this interview");
+}
+
+
+if (companyId) {
+  const updated = await fetchAvailableCredits(companyId);
+  console.log("♻️ Updated credits after delete:", updated);
+  setAvailableCredits(updated);
+}
       }
     }
   };
@@ -734,19 +970,14 @@ if (candidatePhone) {
                     </td>
                     
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-  {interview.payment_status === 'completed' ? (
-    <span className="text-green-600 font-semibold">Completed</span>
-  ) : availableCredits > 0 ? (
-    <span className="text-green-500 font-medium">Completed (via Credits)</span>
+  {interview.isPaid ? (
+    <span className="text-green-600 font-semibold">Paid</span>
   ) : (
-    <button
-      onClick={() => setShowPaymentModal(interview.id)}
-      className="text-red-600 hover:text-red-800"
-    >
-      Pending – Pay Now
-    </button>
+    <span className="text-yellow-600 font-semibold">Credit Reserved</span>
   )}
 </td>
+
+
 
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
   {interview.location_uploaded ? (
@@ -782,26 +1013,6 @@ if (candidatePhone) {
               
             </tbody>
           </table>
-          {showPaymentModal && (
-  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-    <div className="bg-white rounded-xl shadow-xl relative p-6 max-w-lg w-full">
-      <button
-        onClick={() => setShowPaymentModal(null)}
-        className="absolute top-2 right-3 text-gray-600 hover:text-gray-900 text-lg"
-      >
-        ✖
-      </button>
-      <PayPerInterview
-        interviewId={showPaymentModal}
-        onSuccess={() => {
-          setShowPaymentModal(null);
-          fetchInterviews(true);
-        }}
-      />
-    </div>
-  </div>
-)}
-
 
         </div>
       </div>

@@ -48,9 +48,9 @@ amount: isAddition
   : '–',
 
           credits: isAddition ? `+${row.credits_added}` : `${row.credits_added}`,
-          paymentMode: isAddition ? 'Stripe' : '–',
+          paymentMode: isAddition ? (row.payment_mode || 'Online') : '–',
           status: 'Success',
-        });
+        }); 
       });
 
       setHistory(rows);
