@@ -296,14 +296,12 @@ return {
       Completed (via Credits)
     </span>
   ) : (
-    <button
-      onClick={() => setShowPaymentModal(interview.Id)}
-      className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700 hover:text-yellow-800"
-    >
-      Pending – Pay Now
-    </button>
+    <span className="inline-flex items-center justify-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+      Payment Pending
+    </span>
   )}
 </td>
+
 
         <td className="px-4 py-2">{interview.hrName}</td>
 
@@ -314,15 +312,6 @@ return {
 
   </table>
 </div>
-{showPaymentModal && (
-  <PayPerInterview
-    interviewId={showPaymentModal}
-    onSuccess={() => {
-      setShowPaymentModal(null);
-      fetchInterviews(); // refresh after payment
-    }}
-  />
-)}
 
     </motion.div>
   );
