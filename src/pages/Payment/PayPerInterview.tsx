@@ -7,6 +7,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const PayPerInterview: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  console.log("🚀 PayPerInterview screen loaded");
 
   // ✅ Read all data passed from HRScheduleInterview
   const {
@@ -19,8 +20,22 @@ const PayPerInterview: React.FC = () => {
     duration,
     companyId
   } = location.state || {};
+  React.useEffect(() => {
+    if (!location.state) {
+      alert("Missing data. Redirecting to Schedule screen...");
+      navigate("/hr/schedule");
+    }
+  }, []);
+  console.log("📦 location.state:", location.state);
 
   const handlePayNow = async () => {
+    console.log("💳 handlePayNow triggered");
+    console.log("✅ selectedJob:", selectedJob);
+    console.log("✅ selectedCandidate:", selectedCandidate);
+    console.log("✅ selectedInterviewers:", selectedInterviewers);
+    console.log("✅ interviewDate:", interviewDate);
+    console.log("✅ fromTime:", fromTime);
+    console.log("✅ toTime:", toTime);
     if (!selectedJob || !selectedCandidate || !selectedInterviewers || !interviewDate || !fromTime || !toTime) {
       alert('Missing required details. Please go back and fill the form again.');
       return;
