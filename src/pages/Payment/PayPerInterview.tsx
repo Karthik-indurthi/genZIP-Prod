@@ -42,7 +42,7 @@ const PayPerInterview: React.FC = () => {
     }
 
     // ✅ Open Razorpay & on success:
-    openRazorpay(2000, 'Pay Per Interview', async () => {
+    openRazorpay(80, 'Pay Per Interview', async () => {
       // 1️⃣ Insert interview in Supabase
       const { data: userData } = await supabase.auth.getUser();
       const interviewData = {
