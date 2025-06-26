@@ -73,7 +73,7 @@ const userEmail = user.user?.email;
           setLoggedInEmail(userEmail || '');
           setShowResetPopup(true);
         } else {
-          navigate('/hr/dashboard');
+          navigate('/hr/add-job', { replace: true });
         }
         return;
       }
