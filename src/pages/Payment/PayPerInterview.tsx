@@ -83,7 +83,7 @@ const PayPerInterview: React.FC = () => {
           credits_used: 1,
           reason: 'Pay Per Interview',
           reference_id: data.Id,
-          amount_paid: 2000,
+          amount_paid: 80,
           payment_mode: 'Razorpay'
         });
 
