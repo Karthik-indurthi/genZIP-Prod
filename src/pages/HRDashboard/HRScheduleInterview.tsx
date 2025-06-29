@@ -89,35 +89,7 @@ setIsSubscribed(false);
 }
 
   
-// ✅ STEP 2: Calculate available credits
-const { data: creditRecords, error: creditError } = await supabase
-  .from('credittransactions')
-  .select('credits_added, credits_used')
-  .eq('company_id', fetchedCompanyId);
-
-
-
-if (creditError) {
-console.error("Error fetching credit transactions:", creditError.message);
-}
-
-let totalAdded = 0;
-let totalUsed = 0;
-
-if (creditRecords && creditRecords.length > 0) {
-creditRecords.forEach(rec => {
-  totalAdded += rec.credits_added || 0;
-  totalUsed += rec.credits_used || 0;
-});
-}
-
-const availableCredits = totalAdded - totalUsed;
-console.log("Available credits for company:", availableCredits);
-
-// ⏩ Save it to state so we can use it later in the UI
-setAvailableCredits(availableCredits);
-  
-      // 🔽 At this point, you now have `companyId` available for later use
+await fetchAvailableCredits(fetchedCompanyId);
   
       await fetchJobs();
 await fetchCandidates();
@@ -188,25 +160,23 @@ if (fetchedCompanyId) {
     return adminRecord?.company_id || null;
   };
   // After fetchCompanyId
-const fetchAvailableCredits = async (company: string) => {
-  const { data: creditRecords, error: creditError } = await supabase
-    .from('credittransactions')
-    .select('credits_added, credits_used')
-    .eq('company_id', company);
-
-  let totalAdded = 0;
-  let totalUsed = 0;
-  if (creditRecords) {
-    creditRecords.forEach(rec => {
-      totalAdded += rec.credits_added || 0;
-      totalUsed += rec.credits_used || 0;
-    });
-  }
-  const available = totalAdded - totalUsed;
-  console.log("✅ Re-fetched available credits:", available);
-  setAvailableCredits(available);
-  return available;
-};
+  const fetchAvailableCredits = async (company: string) => {
+    const { data: creditRecords, error: creditError } = await supabase
+      .from('credittransactions')
+      .select('credits_available')
+      .eq('company_id', company);
+  
+    let totalAvailable = 0;
+    if (creditRecords) {
+      creditRecords.forEach(rec => {
+        totalAvailable += rec.credits_available || 0;
+      });
+    }
+    console.log("✅ Re-fetched available credits:", totalAvailable);
+    setAvailableCredits(totalAvailable);
+    return totalAvailable;
+  };
+   
 
 
   const fetchInterviews = async (id?: string | null) => {
@@ -215,14 +185,6 @@ const fetchAvailableCredits = async (company: string) => {
       console.warn("⚠️ fetchInterviews: no companyId");
       return;
     }
-  
-    const { data: usedCredits } = await supabase
-      .from('credittransactions')
-      .select('reference_id')
-      .eq('company_id', id)
-      .eq('credits_used', 1);
-  
-    const creditUsedSet = new Set((usedCredits || []).map(c => c.reference_id));
   
     const { data, error } = await supabase
       .from('InterviewsTable')
@@ -246,7 +208,7 @@ const fetchAvailableCredits = async (company: string) => {
       candidateName: `${interview.CandidateTable?.FirstName} ${interview.CandidateTable?.LastName}`,
       candidateEmail: interview.CandidateTable?.EmailId,
       location_uploaded: interview.location_uploaded,
-      isPaid: interview.payment_status === 'completed' || creditUsedSet.has(interview.Id),
+      isPaid: interview.payment_status === 'completed',
       interviewerNames: (() => {
         let ids = [];
         try {
@@ -284,39 +246,7 @@ const fetchAvailableCredits = async (company: string) => {
   
     setInterviews(processedData);
   };
-
-  useEffect(() => {
-    const loadInitialData = async () => {
-      const id = await fetchCompanyId();
-      if (!id) return;
-  
-      setCompanyId(id);
-  
-      const { data: creditRecords, error: creditError } = await supabase
-        .from('credittransactions')
-        .select('credits_added, credits_used')
-        .eq('company_id', id);
-  
-      let totalAdded = 0;
-      let totalUsed = 0;
-      if (creditRecords) {
-        creditRecords.forEach(rec => {
-          totalAdded += rec.credits_added || 0;
-          totalUsed += rec.credits_used || 0;
-        });
-      }
-      setAvailableCredits(totalAdded - totalUsed);
-  
-      await fetchJobs();
-      await fetchCandidates();
-      await fetchInterviewers();
-      await fetchInterviews(id);
-    };
-  
-    loadInitialData();
-  }, []);
-  
-  
+ 
 
   const resetForm = () => {
     setSelectedJob('');
@@ -370,7 +300,8 @@ if (companyId) {
     .from('credittransactions')
     .select('*')
     .eq('company_id', companyId)
-    .eq('used', false)
+    .gt('credits_available', 0)
+
     .limit(1);
 
   if (unusedError) {
@@ -481,8 +412,6 @@ if (isSubscribed) {
   await supabase.from('credittransactions').insert({
     company_id: companyId,
     credits_added: 0,
-    used: true,
-    reference_id: data[0].Id,
     reason: 'Subscription',
     amount_paid: 0,
     payment_mode: 'Subscription'
@@ -494,7 +423,7 @@ if (isSubscribed) {
     .from('credittransactions')
     .select('*')
     .eq('company_id', companyId)
-    .eq('used', false)
+    .gt('credits_available', 0)
     .limit(1)
     .single();
 
@@ -505,12 +434,22 @@ if (isSubscribed) {
   }
 
   const { error: markError } = await supabase
-    .from('credittransactions')
-    .update({
-      used: true,
-      reference_id: data[0].Id
-    })
-    .eq('id', freeCredit.id);
+  .from('credittransactions')
+  .update({
+    credits_used: (freeCredit.credits_used || 0) + 1,
+    credits_available: (freeCredit.credits_available || 0) - 1
+  })
+  .eq('id', freeCredit.id);
+
+
+
+    await supabase
+  .from('InterviewsTable')
+  .update({ payment_status: 'completed' })
+  .eq('Id', data[0].Id);
+
+console.log("✅ Updated InterviewsTable payment_status to 'completed'");
+
 
   if (markError) {
     console.error("❌ Failed to mark credit as used:", markError.message);
@@ -627,30 +566,41 @@ if (candidatePhone) {
         // ✅ Rollback the reserved credit usage
         setInterviews(prev => prev.filter(i => String(i.Id) !== String(id)));
         // ✅ Correct rollback: find the exact row FIRST then update it.
-const { data: creditsToRollback, error: fetchRollbackError } = await supabase
-.from('credittransactions')
-.select('id')
-.eq('reference_id', id)
-.eq('used', true)
-.limit(1);
+        const { data: creditsToRollback, error: fetchRollbackError } = await supabase
+        .from('credittransactions')
+        .select('id, credits_used, credits_available, credits_added')
+        .eq('company_id', companyId)
+        .gt('credits_used', 0)
+        .order('created_at', { ascending: false }) // get most recent used credit
+        .limit(1);
+      
 
 if (fetchRollbackError) {
 console.error("❌ Failed to find credit for rollback:", fetchRollbackError.message);
 } else if (creditsToRollback && creditsToRollback.length > 0) {
-const creditId = creditsToRollback[0].id;
-const { error: updateError } = await supabase
+  const credit = creditsToRollback[0];
+
+  const newUsed = Math.max((credit.credits_used || 0) - 1, 0);
+  const newAvailable = Math.min(
+    (credit.credits_available || 0) + 1,
+    (credit.credits_added || 0) // don't exceed added
+  );
+
+  const { error: updateError } = await supabase
   .from('credittransactions')
   .update({
-    used: false,
-    reference_id: ''
+    credits_used: newUsed,
+    credits_available: newAvailable
   })
-  .eq('id', creditId);
+  .eq('id', credit.id);
 
-if (updateError) {
-  console.error("❌ Failed to rollback credit:", updateError.message);
-} else {
-  console.log(`✅ Credit ${creditId} rolled back for deleted interview: ${id}`);
-}
+
+  if (updateError) {
+    console.error("❌ Failed to rollback credit:", updateError.message);
+  } else {
+    console.log(`✅ Rolled back credit: used=${newUsed}, available=${newAvailable}`);
+  }
+
 } else {
 console.warn("⚠️ No used credit found to rollback for this interview");
 }
