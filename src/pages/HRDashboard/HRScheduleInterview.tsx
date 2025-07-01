@@ -481,7 +481,7 @@ console.log("✅ Updated InterviewsTable payment_status to 'completed'");
     // ✅ Send WhatsApp message to candidate
 const candidatePhone = candidate?.PhoneNumber; // Ensure this field exists in your CandidateTable
 
-if (candidatePhone) {
+/*if (candidatePhone) {
   const baseUrl = window.location.origin;
   const locationLink = `${baseUrl}/location-upload/${data[0].id}`;
 
@@ -493,7 +493,9 @@ if (candidatePhone) {
 
   // ✅ Open WhatsApp chat in new tab (optional for testing)
   window.open(whatsappUrl, '_blank');
-}
+}*/
+
+console.log("Candidate location upload link:", `${window.location.origin}/location-upload/${data[0].id}`);
 
     
     console.log("editingInterviewId at render", editingInterviewId);

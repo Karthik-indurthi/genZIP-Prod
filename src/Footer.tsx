@@ -15,7 +15,8 @@ const Footer = () => {
             <h3 className="text-xl font-bold mb-4">Gen-ZIP</h3>
             <p className="text-gray-400 mb-4">Ensuring authentic talent assessment through verified interview processes.</p>
             <p className="text-gray-400 text-sm">📍 Hyderabad, India</p>
-            <p className="text-gray-400 text-sm">📧 support@gen-zip.in</p>
+            <p className="text-gray-400 text-sm">📧 hr@sereniquetech.com</p>
+            <p className="text-gray-400 text-sm">reach us at +917671913900</p>
           </div>
           <div>
             <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
